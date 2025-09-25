@@ -7,7 +7,7 @@ const reportRoutes = require("./src/routes/reportRoutes");
 const app = express();
 
 const corsOptions = {
-    origin: ["http://localhost:3000", "http://localhost:4000"], 
+    origin: "*",
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
 };
@@ -30,7 +30,18 @@ app.get("/", (req, res) => {
     });
 });
 
+const startServer = (port) => {
+    const server = app.listen(port, () => {
+        console.log(`🚀 Servidor EntrePages rodando em http://localhost:${port}`);
+    }).on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.log(`⚠️ A porta ${port} já está em uso, tentando a próxima...`);
+            startServer(port + 1);
+        } else {
+            console.error('❌ Erro ao iniciar servidor:', err);
+        }
+    });
+};
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor EntrePages rodando em http://localhost:${PORT}`);
-});
+startServer(PORT);
