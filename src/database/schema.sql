@@ -1,6 +1,6 @@
-CREATE DATABASE entrepaginas_db;
+CREATE DATABASE entrepaginas;
 
-\c entrepaginas_db;
+\c entrepaginas;
 
 CREATE TABLE diary_entries (
     id SERIAL PRIMARY KEY,
