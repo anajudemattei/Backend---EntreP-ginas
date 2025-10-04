@@ -1,4 +1,5 @@
 const diaryEntryModel = require("../models/diaryEntriesModel");
+const multer = require("multer");
 
 // Buscar todas as entradas do diário
 const getAllDiaryEntries = async (req, res) => {
@@ -64,16 +65,24 @@ const createDiaryEntry = async (req, res) => {
             });
         }
 
-        const photo = req.file ? req.file.filename : null;
+        // Processar foto se enviada
+        let photoUrl = null;
+        if (req.file) {
+            photoUrl = `/uploads/${req.file.filename}`;
+            console.log("📸 Imagem enviada:", req.file.filename);
+        }
+
+        // Processar tags
         const tagsArray = tags ? (Array.isArray(tags) ? tags : tags.split(',').map(tag => tag.trim())) : [];
         
+        // Criar entrada no banco
         const newEntry = await diaryEntryModel.createDiaryEntry(
             title, 
             content, 
             entryDate || new Date().toISOString().split('T')[0], 
             mood, 
             tagsArray, 
-            photo
+            photoUrl
         );
         
         res.status(201).json({
@@ -83,12 +92,29 @@ const createDiaryEntry = async (req, res) => {
         });
     } catch (error) {
         console.error("Erro ao criar entrada do diário:", error);
+        
+        // Erro de duplicação
         if (error.code === "23505") { 
             return res.status(400).json({ 
                 success: false,
                 message: "Entrada já existe." 
             });
         }
+        
+        // Erro de upload de arquivo
+        if (error instanceof multer.MulterError) {
+            if (error.code === 'LIMIT_FILE_SIZE') {
+                return res.status(400).json({
+                    success: false,
+                    message: "Arquivo muito grande! Tamanho máximo: 5MB"
+                });
+            }
+            return res.status(400).json({
+                success: false,
+                message: `Erro no upload: ${error.message}`
+            });
+        }
+        
         res.status(500).json({ 
             success: false,
             message: "Erro ao criar entrada do diário.",
