@@ -27,10 +27,7 @@ const API_KEY = process.env.API_KEY || 'entre-linhas-2024';
 jest.setTimeout(30000);
 
 describe('🧪 Testes da API EntrePages', () => {
-    
-    // ==========================================
-    // TESTES UNITÁRIOS - Validações
-    // ==========================================
+    // Validações
     describe('📋 Testes Unitários - Validações', () => {
         
         test('Deve validar que título é obrigatório', () => {
@@ -69,9 +66,7 @@ describe('🧪 Testes da API EntrePages', () => {
         });
     });
 
-    // ==========================================
     // TESTES DE INTEGRAÇÃO - API Endpoints
-    // ==========================================
     describe('🔌 Testes de Integração - Endpoints da API', () => {
         
         let createdEntryId;

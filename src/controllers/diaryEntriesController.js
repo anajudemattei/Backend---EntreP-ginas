@@ -1,7 +1,13 @@
+
+// ENTRADAS DO DIÁRIO
+// Este arquivo contém as funções que respondem às requisições HTTP
+
+// Importa o model com as funções do banco de dados
 const diaryEntryModel = require("../models/diaryEntriesModel");
 const multer = require("multer");
 
-// Buscar todas as entradas do diário
+
+// GET /api/diary-entries
 const getAllDiaryEntries = async (req, res) => {
     try {
         const filters = {
@@ -13,6 +19,7 @@ const getAllDiaryEntries = async (req, res) => {
         };
 
         const entries = await diaryEntryModel.getDiaryEntries(filters);
+        
         res.status(200).json({
             success: true,
             count: entries.length,
@@ -28,9 +35,11 @@ const getAllDiaryEntries = async (req, res) => {
     }
 };
 
-// Buscar entrada por ID
+
+// GET /api/diary-entries/:id
 const getDiaryEntry = async (req, res) => {
     try {
+        // Busca a entrada pelo ID
         const entry = await diaryEntryModel.getDiaryEntryById(req.params.id);
         if (!entry) {
             return res.status(404).json({ 
@@ -52,12 +61,13 @@ const getDiaryEntry = async (req, res) => {
     }
 };
 
-// Criar nova entrada
+// POST /api/diary-entries
+// Body: { title, content, entryDate, mood, tags }
+// File: photo (opcional)
 const createDiaryEntry = async (req, res) => {
     try {
         const { title, content, entryDate, mood, tags } = req.body;
         
-        // Validações básicas
         if (!title || !content) {
             return res.status(400).json({ 
                 success: false,
@@ -65,21 +75,19 @@ const createDiaryEntry = async (req, res) => {
             });
         }
 
-        // Processar foto se enviada
         let photoUrl = null;
         if (req.file) {
             photoUrl = `/uploads/${req.file.filename}`;
             console.log("📸 Imagem enviada:", req.file.filename);
         }
 
-        // Processar tags
+        // tags
         const tagsArray = tags ? (Array.isArray(tags) ? tags : tags.split(',').map(tag => tag.trim())) : [];
         
-        // Criar entrada no banco
         const newEntry = await diaryEntryModel.createDiaryEntry(
             title, 
             content, 
-            entryDate || new Date().toISOString().split('T')[0], 
+            entryDate || new Date().toISOString().split('T')[0], // Usa data atual se não informada
             mood, 
             tagsArray, 
             photoUrl
@@ -93,7 +101,6 @@ const createDiaryEntry = async (req, res) => {
     } catch (error) {
         console.error("Erro ao criar entrada do diário:", error);
         
-        // Erro de duplicação
         if (error.code === "23505") { 
             return res.status(400).json({ 
                 success: false,
@@ -101,7 +108,7 @@ const createDiaryEntry = async (req, res) => {
             });
         }
         
-        // Erro de upload de arquivo
+        // upload de arquivo
         if (error instanceof multer.MulterError) {
             if (error.code === 'LIMIT_FILE_SIZE') {
                 return res.status(400).json({
@@ -123,12 +130,12 @@ const createDiaryEntry = async (req, res) => {
     }
 };
 
-// Atualizar entrada
+// PUT /api/diary-entries/:id
+// Body: { title, content, entryDate, mood, tags, isFavorite }
 const updateDiaryEntry = async (req, res) => {
     try {
         const { title, content, entryDate, mood, tags, isFavorite } = req.body;
         
-        // Validações básicas
         if (!title || !content) {
             return res.status(400).json({ 
                 success: false,
@@ -138,6 +145,7 @@ const updateDiaryEntry = async (req, res) => {
 
         const tagsArray = tags ? (Array.isArray(tags) ? tags : tags.split(',').map(tag => tag.trim())) : [];
         
+        // Atualiza 
         const updatedEntry = await diaryEntryModel.updateDiaryEntry(
             req.params.id, 
             title, 
@@ -154,7 +162,7 @@ const updateDiaryEntry = async (req, res) => {
                 message: "Entrada do diário não encontrada." 
             });
         }
-        
+    
         res.status(200).json({
             success: true,
             message: "Entrada do diário atualizada com sucesso!",
@@ -170,9 +178,10 @@ const updateDiaryEntry = async (req, res) => {
     }
 };
 
-// Deletar entrada
+// DELETE /api/diary-entries/:id
 const deleteDiaryEntry = async (req, res) => {
     try {
+        // Deleta do banco
         const result = await diaryEntryModel.deleteDiaryEntry(req.params.id);
         
         if (result.error) {
@@ -196,7 +205,8 @@ const deleteDiaryEntry = async (req, res) => {
     }
 };
 
-// Buscar entradas por humor
+// Buscar entradas por humor específico
+// GET /api/diary-entries/mood/:mood
 const getDiaryEntriesByMood = async (req, res) => {
     try {
         const { mood } = req.params;
@@ -217,7 +227,8 @@ const getDiaryEntriesByMood = async (req, res) => {
     }
 };
 
-// Buscar entradas favoritas
+// Buscar apenas entradas favoritas
+// GET /api/diary-entries/favorites
 const getFavoriteDiaryEntries = async (req, res) => {
     try {
         const entries = await diaryEntryModel.getFavoriteDiaryEntries();
@@ -237,9 +248,11 @@ const getFavoriteDiaryEntries = async (req, res) => {
     }
 };
 
-// Alternar status de favorito
+// Marcar/Desmarcar como favorito
+// PATCH /api/diary-entries/:id/favorite
 const toggleFavorite = async (req, res) => {
     try {
+        // Inverte o status de favorito
         const updatedEntry = await diaryEntryModel.toggleFavorite(req.params.id);
         
         if (!updatedEntry) {
@@ -264,7 +277,8 @@ const toggleFavorite = async (req, res) => {
     }
 };
 
-// Buscar estatísticas
+// Buscar estatísticas gerais
+// GET /api/diary-entries/stats
 const getDiaryStats = async (req, res) => {
     try {
         const stats = await diaryEntryModel.getDiaryStats();
@@ -283,6 +297,7 @@ const getDiaryStats = async (req, res) => {
     }
 };
 
+// Exporta todas as funções para usar nas rotas
 module.exports = { 
     getAllDiaryEntries, 
     getDiaryEntry, 

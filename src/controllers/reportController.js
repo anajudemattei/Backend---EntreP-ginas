@@ -1,3 +1,6 @@
+// RELATÓRIOS PDF
+// Usa o PDFKit para criar documentos PDF
+
 const PDFDocument = require('pdfkit');
 const diaryEntryModel = require('../models/diaryEntriesModel');
 
@@ -5,7 +8,6 @@ const exportDiaryToPDF = async (req, res) => {
     try {
         console.log('Iniciando geração do PDF do diário...');
 
-        // Filtros para o relatório
         const filters = {
             startDate: req.query.startDate,
             endDate: req.query.endDate,
@@ -13,11 +15,13 @@ const exportDiaryToPDF = async (req, res) => {
             favorites: req.query.favorites
         };
 
+        // Busca as entradas do diário 
         const entries = await diaryEntryModel.getDiaryEntries(filters);
         const stats = await diaryEntryModel.getDiaryStats();
         
         console.log('Entradas recuperadas:', entries.length);
 
+        // Configura o cabeçalho da resposta HTTP para PDF
         res.setHeader('Content-Type', 'application/pdf');
         const fileName = `diario-entrepaginas-${new Date().toISOString().split('T')[0]}.pdf`;
         res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
@@ -25,21 +29,21 @@ const exportDiaryToPDF = async (req, res) => {
         const doc = new PDFDocument({ margin: 50 });
         doc.pipe(res);
 
-        // Título principal
+        // Estilização do PDF
         doc.fontSize(24)
            .fillColor('#2C3E50')
            .text('EntrePages - Relatório do Diário', { align: 'center' });
         
         doc.moveDown();
         
-        // Data de geração
+        // Data 
         doc.fontSize(12)
            .fillColor('#7F8C8D')
            .text(`Relatório gerado em: ${new Date().toLocaleDateString('pt-BR')}`, { align: 'center' });
         
         doc.moveDown(2);
 
-        // Estatísticas gerais
+        // Estatisticas Gerais
         doc.fontSize(18)
            .fillColor('#34495E')
            .text('📊 Estatísticas Gerais', { underline: true });
@@ -58,14 +62,13 @@ const exportDiaryToPDF = async (req, res) => {
 
         doc.moveDown(2);
 
-        // Distribuição de humor
         if (stats.moodDistribution && stats.moodDistribution.length > 0) {
             doc.fontSize(16)
                .fillColor('#34495E')
                .text('😊 Distribuição de Humor', { underline: true });
             
             doc.moveDown();
-            
+
             stats.moodDistribution.forEach(mood => {
                 doc.fontSize(11)
                    .fillColor('#2C3E50')
@@ -75,7 +78,6 @@ const exportDiaryToPDF = async (req, res) => {
             doc.moveDown(2);
         }
 
-        // Entradas do diário
         if (entries.length > 0) {
             doc.addPage();
             
@@ -86,19 +88,17 @@ const exportDiaryToPDF = async (req, res) => {
             doc.moveDown(2);
 
             entries.forEach((entry, index) => {
-                // Verificar se precisa de nova página
+
                 if (doc.y > 700) {
                     doc.addPage();
                 }
 
                 console.log('Processando entrada:', entry.title);
                 
-                // Título da entrada
                 doc.fontSize(14)
                    .fillColor('#2C3E50')
                    .text(`${index + 1}. ${entry.title}`, { underline: true });
                 
-                // Data e humor
                 const entryDate = new Date(entry.entry_date).toLocaleDateString('pt-BR');
                 doc.fontSize(10)
                    .fillColor('#7F8C8D')
@@ -106,7 +106,6 @@ const exportDiaryToPDF = async (req, res) => {
                 
                 doc.moveDown();
                 
-                // Conteúdo
                 doc.fontSize(11)
                    .fillColor('#2C3E50')
                    .text(entry.content, { 
@@ -114,7 +113,6 @@ const exportDiaryToPDF = async (req, res) => {
                        align: 'justify'
                    });
                 
-                // Tags
                 if (entry.tags && entry.tags.length > 0) {
                     doc.moveDown();
                     doc.fontSize(9)
@@ -122,7 +120,6 @@ const exportDiaryToPDF = async (req, res) => {
                        .text(`Tags: ${entry.tags.join(', ')}`);
                 }
                 
-                // Foto
                 if (entry.photo) {
                     doc.fontSize(9)
                        .fillColor('#95A5A6')
@@ -131,7 +128,6 @@ const exportDiaryToPDF = async (req, res) => {
                 
                 doc.moveDown(1.5);
                 
-                // Linha divisória
                 doc.strokeColor('#BDC3C7')
                    .lineWidth(0.5)
                    .moveTo(50, doc.y)
@@ -141,12 +137,12 @@ const exportDiaryToPDF = async (req, res) => {
                 doc.moveDown();
             });
         } else {
+            // Mensagem se não tiver entradas
             doc.fontSize(12)
                .fillColor('#7F8C8D')
                .text('Nenhuma entrada encontrada para os filtros aplicados.');
         }
 
-        // Rodapé
         doc.fontSize(8)
            .fillColor('#95A5A6')
            .text('Gerado pela API EntrePages - Diário Digital', 50, doc.page.height - 50, {
@@ -166,4 +162,5 @@ const exportDiaryToPDF = async (req, res) => {
     }
 };
 
+// Exporta a função para usar nas rotas
 module.exports = { exportDiaryToPDF };

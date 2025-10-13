@@ -1,3 +1,5 @@
+// ENTRADAS DO DIÁRIO
+
 const pool = require("../config/database");
 
 // Buscar todas as entradas do diário
@@ -7,24 +9,20 @@ const getDiaryEntries = async (filters = {}) => {
         let params = [];
         let whereConditions = [];
 
-        // Filtro por data
         if (filters.startDate && filters.endDate) {
             whereConditions.push("entry_date BETWEEN $" + (params.length + 1) + " AND $" + (params.length + 2));
             params.push(filters.startDate, filters.endDate);
         }
 
-        // Filtro por humor
         if (filters.mood) {
             whereConditions.push("mood = $" + (params.length + 1));
             params.push(filters.mood);
         }
 
-        // Filtro por favoritos
         if (filters.favorites === 'true') {
             whereConditions.push("is_favorite = true");
         }
 
-        // Filtro por tag
         if (filters.tag) {
             whereConditions.push("$" + (params.length + 1) + " = ANY(tags)");
             params.push(filters.tag);
@@ -37,6 +35,7 @@ const getDiaryEntries = async (filters = {}) => {
         query += " ORDER BY entry_date DESC, created_at DESC";
 
         console.log('Executando query:', query, 'com parâmetros:', params);
+        
         const result = await pool.query(query, params);
         return result.rows;
     } catch (error) {
@@ -45,11 +44,11 @@ const getDiaryEntries = async (filters = {}) => {
     }
 };
 
-// Buscar entrada por ID
+// Buscar uma entrada específica por ID
 const getDiaryEntryById = async (id) => {
     try {
         const result = await pool.query("SELECT * FROM diary_entries WHERE id = $1", [id]);
-        return result.rows[0];
+        return result.rows[0]; 
     } catch (error) {
         console.error('Erro ao buscar entrada por ID:', error.message);
         throw error;
@@ -69,9 +68,9 @@ const createDiaryEntry = async (title, content, entryDate, mood, tags, photo) =>
         console.error('Erro ao criar entrada do diário:', error.message);
         throw error;
     }
-};
+    };
 
-// Atualizar entrada do diário
+// Atualizar entrada existente
 const updateDiaryEntry = async (id, title, content, entryDate, mood, tags, isFavorite) => {
     try {
         const result = await pool.query(
@@ -103,7 +102,7 @@ const deleteDiaryEntry = async (id) => {
     }
 };
 
-// Buscar entradas por humor
+// Buscar entradas por humor específico
 const getDiaryEntriesByMood = async (mood) => {
     try {
         const result = await pool.query(
@@ -117,7 +116,7 @@ const getDiaryEntriesByMood = async (mood) => {
     }
 };
 
-// Buscar entradas favoritas
+// Buscar apenas entradas favoritas
 const getFavoriteDiaryEntries = async () => {
     try {
         const result = await pool.query(
@@ -130,9 +129,10 @@ const getFavoriteDiaryEntries = async () => {
     }
 };
 
-// Marcar/desmarcar como favorito
+// Marcar ou desmarcar como favorito
 const toggleFavorite = async (id) => {
     try {
+        // NOT inverte o valor atual (true vira false, false vira true)
         const result = await pool.query(
             "UPDATE diary_entries SET is_favorite = NOT is_favorite WHERE id = $1 RETURNING *",
             [id]
@@ -144,11 +144,16 @@ const toggleFavorite = async (id) => {
     }
 };
 
-// Buscar estatísticas das entradas
+// Buscar estatísticas gerais do diário
 const getDiaryStats = async () => {
     try {
+        // Total de entradas
         const totalEntries = await pool.query("SELECT COUNT(*) as total FROM diary_entries");
+        
+        // Total de favoritas
         const favoriteEntries = await pool.query("SELECT COUNT(*) as total FROM diary_entries WHERE is_favorite = true");
+        
+        // Distribuição por humor
         const moodStats = await pool.query(`
             SELECT mood, COUNT(*) as count 
             FROM diary_entries 
@@ -166,6 +171,7 @@ const getDiaryStats = async () => {
             LIMIT 12
         `);
 
+        // Retorna todas as estatísticas
         return {
             totalEntries: parseInt(totalEntries.rows[0].total),
             favoriteEntries: parseInt(favoriteEntries.rows[0].total),

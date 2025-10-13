@@ -1,7 +1,7 @@
 {
   "name": "entrepaginas-backend",
   "version": "1.0.0",
-  "description": "Backend para aplicação de diário digital EntrePages",
+  "description": "Backend para aplicação de diário digital EntrePages - Projeto simples e direto usando Node.js e Express",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -20,7 +20,10 @@
     "journal",
     "api",
     "backend",
-    "nodejs"
+    "nodejs",
+    "express",
+    "postgresql",
+    "senai"
   ],
   "author": "Ana Demattei",
   "license": "MIT",
